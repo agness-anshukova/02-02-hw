@@ -13,7 +13,7 @@
 ## Установка и запуск memcached
 
 `Установка и запуск memcached на ubuntu
-![Установка и запуск memcached](/img/memcached_server.png)`
+![Установка и запуск memcached](img/memcached_server.png)`
 
 `Установка и запуск memcached на ubuntu
 ![Установка и запуск memcached](/img/memcached_localhost.png)`
