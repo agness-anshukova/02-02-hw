@@ -1,69 +1,50 @@
-# Домашнее задание к занятию "`Работа с данными (DDL/DML)`" - `Аншукова Ания`
+# Домашнее задание к занятию "`Домашнее задание к занятию «Индексы»`" - `Аншукова Ания`
 
 
 ### Задание 1
-## 1.1. Поднимите чистый инстанс MySQL версии 8.0+. 
-Подключение к серверу MySQL с помощью mysql Client.
-`> mysql -u root -p`
+## Напишите запрос к учебной базе данных, который вернёт процентное отношение общего размера всех индексов к общему размеру всех таблиц. 
+Запрос.
+`SELECT (sum(t.INDEX_LENGTH)/sum(t.DATA_LENGTH))*100`
+`FROM information_schema.tables as t`
+`WHERE table_schema = 'sakila';`
 
-![Установка MySQL](/img/databases.jpg)
-
-
-## 1.2. Создайте учётную запись sys_temp. 
-Создание учетной записи.
-`CREATE USER 'sys_temp'@'localhost' IDENTIFIED BY '12345'`
-
-![Создана учетная запись sys_temp](/img/sys_temp_u.jpg)
-
-
-## 1.3.  Выполните запрос на получение списка пользователей в базе данных.
-Запрос на получение списка пользователей.
-`SELECT * FROM mysql.user where `User` =  'sys_temp'` 
-
-![Список пользователей](/img/users_list.jpg)
-
-
-## 1.4.  Дайте все права для пользователя sys_temp.
-Запрос на предоставление всех прав пользователю.
-`GRANT ALL ON *.* TO 'sys_temp'@'localhost'`
-
-![Выдача всех прав пользователю](/img/alter_user.jpg)
-
-
-## 1.5. Выполните запрос на получение списка прав для пользователя sys_temp. 
-Запрос на получение списка прав пользователя.
-`SELECT * FROM mysql.user where 'User' =  'sys_temp';`
-
-![Запрос списка прав пользователя](/img/sys_temp_priv.jpg)
-
-
-## 1.6. Переподключитесь к базе данных от имени sys_temp.
-Запрос переподключения к базе данных от имени пользователя sys_temp.
-`> mysql -u sys_temp -p`
-
-![Переподключение на пользователя](/img/reconnect.jpg)
-
-
-## 1.7. Восстановите дамп в базу данных.
-Запросы на восстановление данных.
-`mysql> use sakila;`
-`mysql> source C:\tmp\sakila-data.sql`
-
-![Восстановление данных](/img/restore.jpg)
-
-
-## 1.8. При работе в IDE сформируйте ER-диаграмму получившейся базы данных. При работе в командной строке используйте команду для получения всех таблиц базы данных.
-![Диаграмма](/img/diagram.jpg)
-
+![Запрос индексов](/img/indexes.jpg)
 
 
 ### Задание 2
-## Составьте таблицу, используя любой текстовый редактор или Excel, в которой должно быть два столбца: в первом должны быть названия таблиц восстановленной базы, во втором названия первичных ключей этих таблиц.
+## Выполните explain analyze следующего запроса:
 Запрос на получение данных.
-`select k.TABLE_NAME as "Название таблицы",`
-       `k.COLUMN_NAME as "Название первичного ключа"`
-  `from information_schema.key_column_usage as k `
- `where k.CONSTRAINT_NAME = 'PRIMARY'`
- ` and k.CONSTRAINT_SCHEMA = 'sakila'`
+`select distinct concat(c.last_name, ' ', c.first_name), sum(p.amount) over (partition by c.customer_id, f.title)`
+`from payment p, rental r, customer c, inventory i, film f`
+`where date(p.payment_date) = '2005-07-30' and p.payment_date = r.rental_date and r.customer_id = c.customer_id and i.inventory_id = r.inventory_id`
 
-![Данныйе в файле](/img/table_PK.jpg)
+![Explain analize](/img/explain_analize.jpg)
+
+## перечислите узкие места;
+Самый дорогая по стоимости операция `Sort: c.customer_id, f.title  (actual time=4866..5043 rows=642000 loops=1)`.
+Полагаю, что стоимость операции обусловлена соединением таблицы `film` с соединением из таблиц `payment p, rental r, customer c, inventory i`, поскольку не указано, по какому столбцу таблицы `film` следует ее соединять с другими таблицами, получили декартово произведение.
+
+## оптимизируйте запрос: внесите корректировки по использованию операторов, при необходимости добавьте индексы.
+Запрос был преобразован следующим образом:
+`select distinct concat(c.last_name, ' ', c.first_name), `
+     ` sum(p.amount) over (partition by c.customer_id, f.title)`
+ ` from payment p,` 
+     `rental r,`   
+       `customer c,` 
+       `inventory i, `
+       `film f `
+  `where date(p.payment_date) = '2005-07-30'` 
+    `and p.payment_date = r.rental_date `
+    `and r.customer_id = c.customer_id `
+    `and i.inventory_id = r.inventory_id`
+   ` and i.film_id = f.film_id;`
+
+Стоимость запроса без дополнительных индексов:
+![Explain analize 2](/img/costs_without_ind.jpg)
+
+Стоимость запроса уменьшилась при добавлении доп.индексов:
+`CREATE INDEX rci ON rental (rental_date, customer_id, inventory_id );`
+`CREATE INDEX lfc ON customer (last_name, first_name, customer_id ); `
+`CREATE INDEX fti ON film (film_id, title ); `
+`CREATE INDEX inv ON inventory (inventory_id, film_id ); `
+![Explain analize 3](/img/explain_analize1.jpg)
