@@ -53,7 +53,3 @@
 `CREATE INDEX lfc ON customer (last_name, first_name, customer_id ); `
 `CREATE INDEX inv ON inventory (inventory_id, film_id ); `
 ![Explain analize 3](/img/explain_analize1.jpg)
-<<<<<<< HEAD
-
-=======
->>>>>>> 62a981363d7cd272485f63f427e441c2eee5769a
